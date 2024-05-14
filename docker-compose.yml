@@ -1,0 +1,66 @@
+version: "3.7"
+
+services:
+    # image project
+    app:
+        image: linhnguyen91/wishcare_be:1.0
+        container_name: wishcare_api
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ../backend-api:/var/www
+        depends_on:
+            - redis
+        networks:
+            - wishcare-net
+
+    # nginx
+    nginx:
+        image: nginx:alpine
+        container_name: wishcare_nginx
+        restart: unless-stopped
+        ports:
+            - "8099:80"
+        volumes:
+            - ../backend-api:/var/www
+            - ./dev/nginx/:/etc/nginx/conf.d/
+        networks:
+            - wishcare-net
+
+    # db postgres
+    postgres:
+        image: gradescope/postgresql-multiple-databases:14.4
+        container_name: wishcare_postgres
+        # we mount a datavolume to make sure we don't loose data
+        volumes:
+            - wishcare_data:/var/lib/postgresql/data
+        ports:
+            - "8433:5432"
+        networks:
+            - wishcare-net
+        # setting some env vars to create the DB
+        environment:
+            - POSTGRES_MULTIPLE_DATABASES=wishcare
+            - POSTGRES_DB=wishcare
+            - POSTGRES_USER=wishcare
+            - POSTGRES_PASSWORD=ant.tech.asia
+        restart: always
+
+    # redis
+    redis:
+        image: redis:latest
+        container_name: wishcare_redis
+        ports:
+            - "7379:6379"
+        networks:
+            - wishcare-net
+
+#Docker Networks
+networks:
+    wishcare-net:
+        driver: bridge
+
+#Volumes
+volumes:
+    wishcare_data:
+        driver: local
